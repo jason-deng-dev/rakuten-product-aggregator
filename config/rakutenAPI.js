@@ -1,7 +1,7 @@
 import 'dotenv/config';
 
 export const getProductsByKeyword = async (keyword) => {
-	const translatedKeyword = keyword;
+	const translatedKeyword = 'running';
 	const itemCount = 1;
 	const itemSearchEndpoint = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&keyword=${translatedKeyword}&hits=${itemCount}&availability=1&applicationId=${process.env.RAKUTEN_APP_ID}`;
 	try {
@@ -14,6 +14,9 @@ export const getProductsByKeyword = async (keyword) => {
 		// });
 		// const resJson = await res.json();
 		// const items = resJson.Items;
+
+		// const item = items[0].Item;
+
 		const mockItems = mockAPICall();
 		const item = mockItems[0].Item;
 		const {
@@ -31,9 +34,7 @@ export const getProductsByKeyword = async (keyword) => {
 			tagIds,
 		} = item;
 
-        console.log(smallImageUrls)
-        console.log(mediumImageUrls)
-		// console.log(mockItems);
+		console.log(item.mediumImageUrls);
 	} catch (err) {
 		console.log(err);
 	}
@@ -61,8 +62,34 @@ function mockAPICall() {
 					'https://item.rakuten.co.jp/alpen/4303565814/?rafcid=wsc_i_is_a59b19a1-7865-4250-ba83-cfced1d12053',
 				shopUrl:
 					'https://www.rakuten.co.jp/alpen/?rafcid=wsc_i_is_a59b19a1-7865-4250-ba83-cfced1d12053',
-				smallImageUrls: [Array],
-				mediumImageUrls: [Array],
+				smallImageUrls: [
+					{
+						imageUrl:
+							'https://thumbnail.image.rakuten.co.jp/@0_mall/alpen/cabinet/img/757/4303565814_8.jpg?_ex=64x64',
+					},
+					{
+						imageUrl:
+							'https://thumbnail.image.rakuten.co.jp/@0_mall/alpen/cabinet/img/757/4303565814_1.jpg?_ex=64x64',
+					},
+					{
+						imageUrl:
+							'https://thumbnail.image.rakuten.co.jp/@0_mall/alpen/cabinet/img/757/4303565814_2.jpg?_ex=64x64',
+					},
+				],
+				mediumImageUrls: [
+					{
+						imageUrl:
+							'https://thumbnail.image.rakuten.co.jp/@0_mall/alpen/cabinet/img/757/4303565814_8.jpg?_ex=128x128',
+					},
+					{
+						imageUrl:
+							'https://thumbnail.image.rakuten.co.jp/@0_mall/alpen/cabinet/img/757/4303565814_1.jpg?_ex=128x128',
+					},
+					{
+						imageUrl:
+							'https://thumbnail.image.rakuten.co.jp/@0_mall/alpen/cabinet/img/757/4303565814_2.jpg?_ex=128x128',
+					},
+				],
 				affiliateUrl: '',
 				shopAffiliateUrl: '',
 				imageFlag: 1,
