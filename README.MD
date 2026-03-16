@@ -23,3 +23,34 @@ A full-stack web application that fetches, stores, and displays running products
 ## Links
 
 - GitHub: https://github.com/jason-deng-dev/rakuten-product-aggregator
+
+#### Categories 
+🏃 Running Gear
+- Shoes
+- Apparel
+- GPS/Watch
+- Accessories (pouches, armbands, insoles)
+
+💪 Training
+- Fitness Machines
+- Yoga/Pilates
+- Track & Field
+
+🥤 Nutrition & Supplements
+- Sports Drinks
+- Protein
+- Amino Acid
+- Vitamins & Minerals
+- Recovery (Collagen, Citric Acid, Probiotics)
+
+🧴 Recovery & Care
+- Massage Products
+- Stretching Equipment
+- Foot Care
+- Sports Care Products
+
+👕 Sportswear
+- Men's
+- Women's
+- Underwear
+- Bags & Accessories

@@ -94,9 +94,6 @@ export const getProductsByGenresId = async (
 	} catch (err) {}
 };
 
-getProductsByGenresId(565769, 1, 'standard')
-
-
 function mockAPICall() {
 	return [
 		{
