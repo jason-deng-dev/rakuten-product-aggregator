@@ -46,10 +46,12 @@ export const getProductsByGenresId = async (
 		const normalizedItem = normalizeItems(items)
 		console.log(normalizedItem)
 		return normalizedItem;
-	} catch (err) {}
+	} catch (err) {
+		console.log(err)
+	}
 };
 
-getProductsByGenresId(568476, 1, 'standard')
+// getProductsByGenresId(568476, 1, 'standard')
 
 
 function normalizeItems(items) {
