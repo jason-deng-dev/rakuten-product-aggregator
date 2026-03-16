@@ -71,6 +71,10 @@ export const getProductsByKeyword = async (
 	}
 };
 
+export const getProductsByGenresId = async(cateogryId) => {
+	
+}
+
 function mockAPICall() {
 	return [
 		{

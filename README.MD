@@ -1,6 +1,6 @@
 ## Goal
 
-Use Rakuten APIs to fetch products according and display with sorting by popularity/genre/category/keyword
+Use Rakuten APIs to fetch products according and display with sorting by popularity/genre/keyword
 
 ## Description
 
@@ -17,7 +17,7 @@ A full-stack web application that fetches, stores, and displays running products
 
 - Rakuten Ichiba Item Search API (fetch running products by keyword)
 - Rakuten Ichiba Ranking API (show "most popular running products")
-- Rakuten Ichiba Genre Search API (get genre/category IDs for filtering)
+- Rakuten Ichiba Genre Search API (get genre IDs for filtering)
 - DeepL API (for translating keyword/item info)
 
 ## Links

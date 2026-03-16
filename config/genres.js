@@ -1,5 +1,5 @@
 
-const categories = {
+const Genres = {
     Triathlon: 568218,
     'Track&Field': 205074,
     'Yoga / Pilates': 407916,
@@ -8,7 +8,7 @@ const categories = {
     'Sportswear / Accessories': 551942,
 };
 
-const trackAndFieldCategories = {
+const trackAndFieldGenres = {
     'Junior apparel': 565778,
     'Women apparel': 502027,
     'Men apparel': 402463,
@@ -16,12 +16,12 @@ const trackAndFieldCategories = {
     'Short distance running shoes': 565779,
 };
 
-const yogaAndPilatesCategories = {
+const yogaAndPilatesGenres = {
     Wear: 501880,
     'Yoga mat': 204688,
 };
 
-const runningAndMarathonCategories = {
+const runningAndMarathonGenres = {
     Shoes: 565768,
     Wear: 565767,
     'GPS/Watch': 565769,
@@ -30,14 +30,14 @@ const runningAndMarathonCategories = {
     Insole: 568475,
 };
 
-const fitnessAndTrainingCategories = {
+const fitnessAndTrainingGenres = {
     'Fitness machines': 565772,
     Wear: 201869,
     Shoes: 565771,
     'Protein Shaker': 567756,
 };
 
-const sportsApparelCategories = {
+const sportsApparelGenres = {
     'Sports Care Products': 565744,
     'Sports Underwear': 565743,
     'Sports Bag': 208118,
@@ -57,7 +57,7 @@ const relaxAndMassageProducts = {
 
 }
 
-const consumableCategories = {
+const consumableGenres = {
     'Sports Drinks': 559936,
     'Protein': 567603,
     'Amino Acid': 567604,
@@ -70,7 +70,7 @@ const consumableCategories = {
     'Fatty Acids and Oils': 567611,
 }
 
-const topLevelCategories = {
+const topLevelGenres = {
     'Running Gear': [565768, 565767, 565769, 568476, 564507, 568475],
     'Training': [565772, 201869, 565771, 567756, 205074, 407916, 568218],
     'Nutrition & Supplements': [559936, 567603, 567604, 201485, 302658, 402614, 567605, 402589, 208149, 567611],
@@ -78,4 +78,4 @@ const topLevelCategories = {
     'Sportswear': [502027, 402463, 565743, 208118, 551942],
 };
 
-export {topLevelCategories}
+export {topLevelGenres}
