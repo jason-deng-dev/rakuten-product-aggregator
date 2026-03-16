@@ -1,0 +1,4 @@
+### Setup .env with
+- PORT
+- RAKUTEN_APP_ID
+- RAKUTEN_ACCESS_KEY
