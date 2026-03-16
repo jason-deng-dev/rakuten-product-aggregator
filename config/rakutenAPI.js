@@ -81,17 +81,21 @@ export const getProductsByGenresId = async (
 	const itemSearchEndpoint = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&genreId=${genreId}&availability=1&hits=${count}&sort=${sortMode}&applicationId=${process.env.RAKUTEN_APP_ID}`;
 
 	try {
-		// const res = await fetch(itemSearchEndpoint, {
-		// 	headers: {
-		// 		Referer: process.env.RAKUTEN_REFERRER,
-		// 		Origin: process.env.RAKUTEN_REFERRER,
-		// 		accessKey: process.env.RAKUTEN_ACCESS_KEY,
-		// 	},
-		// });
-		// const resJson = await res.json();
-		// const items = resJson.Items;
+		const res = await fetch(itemSearchEndpoint, {
+			headers: {
+				Referer: process.env.RAKUTEN_REFERRER,
+				Origin: process.env.RAKUTEN_REFERRER,
+				accessKey: process.env.RAKUTEN_ACCESS_KEY,
+			},
+		});
+		const resJson = await res.json();
+		const items = resJson.Items;
+		console.log(items)
 	} catch (err) {}
 };
+
+getProductsByGenresId(565769, 1, 'standard')
+
 
 function mockAPICall() {
 	return [
