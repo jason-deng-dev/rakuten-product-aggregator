@@ -2,20 +2,128 @@ import 'dotenv/config';
 
 export const getProductsByKeyword = async (keyword) => {
 	const keywordTranslated = keyword;
+	const itemCount = 1;
 
-	const itemSearchEndpoint = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&keyword=running&hits=1&availability=1&applicationId=${process.env.RAKUTEN_APP_ID}`;
+	const itemSearchEndpoint = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&keyword=running&hits=${itemCount}&availability=1&applicationId=${process.env.RAKUTEN_APP_ID}`;
 	try {
-		const res = await fetch(itemSearchEndpoint, {
-			headers: {
-				Referer: process.env.RAKUTEN_REFERRER,
-				Origin: process.env.RAKUTEN_REFERRER,
-                accessKey: process.env.RAKUTEN_ACCESS_KEY
-			},
-		});
-		const resJson = await res.json();
-
-		console.log(resJson);
+		// const res = await fetch(itemSearchEndpoint, {
+		// 	headers: {
+		// 		Referer: process.env.RAKUTEN_REFERRER,
+		// 		Origin: process.env.RAKUTEN_REFERRER,
+		// 		accessKey: process.env.RAKUTEN_ACCESS_KEY,
+		// 	},
+		// });
+		// const resJson = await res.json();
+		// const items = resJson.Items;
+        const mockItems = mockAPICall();
+		console.log(mockItems);
 	} catch (err) {
 		console.log(err);
 	}
 };
+
+function mockAPICall() {
+	return [
+		{
+			Item: {
+				itemName:
+					'ナイキ AIR WINFLO 11 エア ウィンフロー 11 FJ9509-001 メンズ 陸上/ランニング ランニングシューズ : ブラック×ホワイト NIKE imbkk',
+				catchcopy: '',
+				itemCode: 'alpen:10467589',
+				itemPrice: 6587,
+				itemPriceBaseField: 'item_price_min3',
+				itemPriceMax1: 6587,
+				itemPriceMax2: 6587,
+				itemPriceMax3: 6587,
+				itemPriceMin1: 6587,
+				itemPriceMin2: 6587,
+				itemPriceMin3: 6587,
+				itemCaption:
+					'◇バランスの良い履き心地でランを後押し。ウィンフロー 11は、ランニングのペースアップをサポートします。フルレングスのNike Airクッショニングを搭載。ウィンフロー 10よりも、前足部はゆったり、かかとは幅広のデザインで、通気性が格段に向上。毎日でも走りたくなる履き心地が絶好調の状態につながり、翌日ランニングに戻ってもさらにコンディションがアップします。■カラー(メーカー表記):ブラック×ホワイト(001:ブラック/ホワイト/アンスラサイト/クールグレー)■甲材(アッパー):合成繊維■底材(ソール):ゴム底■生産国:ベトナム■2024年モデル※ブランドやシリーズによっては甲高や幅等小さめに作られていることがあります。あくまで目安としてご判断ください。※こちらの商品は店頭と在庫を共有しているためパッケージの一部破損や試着による若干の汚損がある場合がございます。初期不良以外、上記の理由による返品交換は致しかねます。予めご了承いただけますようよろしくお願いします。アルペン alpen スポーツデポ SPORTSDEPO スポーツシューズ ランニングシューズ ランニング シューズ ジョギングシューズ マラソンシューズ エアウィンフロー11 220713runout 1222RUN43online 43RUNCL',
+				itemUrl:
+					'https://item.rakuten.co.jp/alpen/4303565814/?rafcid=wsc_i_is_a59b19a1-7865-4250-ba83-cfced1d12053',
+				shopUrl:
+					'https://www.rakuten.co.jp/alpen/?rafcid=wsc_i_is_a59b19a1-7865-4250-ba83-cfced1d12053',
+				smallImageUrls: [Array],
+				mediumImageUrls: [Array],
+				affiliateUrl: '',
+				shopAffiliateUrl: '',
+				imageFlag: 1,
+				availability: 1,
+				taxFlag: 0,
+				postageFlag: 1,
+				creditCardFlag: 1,
+				shopOfTheYearFlag: 0,
+				shipOverseasFlag: 0,
+				shipOverseasArea: '',
+				asurakuFlag: 0,
+				asurakuClosingTime: '',
+				asurakuArea: '',
+				affiliateRate: 4,
+				startTime: '',
+				endTime: '',
+				reviewCount: 62,
+				reviewAverage: 4.85,
+				pointRate: 5,
+				pointRateStartTime: '2026-03-13 19:00',
+				pointRateEndTime: '2026-03-19 13:59',
+				giftFlag: 0,
+				shopName: 'アルペン楽天市場店',
+				shopCode: 'alpen',
+				genreId: '509058',
+				tagIds: [Array],
+			},
+		},
+		{
+			Item: {
+				itemName:
+					'【セール】サッカニー Saucony SPECIAL PRICE メンズ KINVARA 15 キンバラ15 ランニング マラソン ジョギング トレーニング ジム フィットネス スポーツ 運動靴 日常ラン 負担軽減 サポート S20967',
+				catchcopy:
+					'1898年創業 100年以上にわたりランニングに携わってきた私たちは、ボストン郊外の地元の工場からグローバルブランドへと成長し、世界中でランニングの楽しさを発信しています',
+				itemCode: 'saucony:10000049',
+				itemPrice: 8800,
+				itemPriceBaseField: 'item_price_min3',
+				itemPriceMax1: 8800,
+				itemPriceMax2: 8800,
+				itemPriceMax3: 8800,
+				itemPriceMin1: 8800,
+				itemPriceMin2: 8800,
+				itemPriceMin3: 8800,
+				itemCaption:
+					'商品情報 ITEM DETAILS まるで羽のように軽い履き心地。KINVARA 15は、柔軟性とクッション性を兼ね備えた、デイリーランに最適なランニングシューズです。軽量で無駄のないデザインに、PWRRUNクッションとSRSソックライナーを搭載し、長距離でも快適に走れるサポート力を発揮します。',
+				itemUrl:
+					'https://item.rakuten.co.jp/saucony/mens-kin-15/?rafcid=wsc_i_is_a59b19a1-7865-4250-ba83-cfced1d12053',
+				shopUrl:
+					'https://www.rakuten.co.jp/saucony/?rafcid=wsc_i_is_a59b19a1-7865-4250-ba83-cfced1d12053',
+				smallImageUrls: [Array],
+				mediumImageUrls: [Array],
+				affiliateUrl: '',
+				shopAffiliateUrl: '',
+				imageFlag: 1,
+				availability: 1,
+				taxFlag: 0,
+				postageFlag: 1,
+				creditCardFlag: 1,
+				shopOfTheYearFlag: 0,
+				shipOverseasFlag: 0,
+				shipOverseasArea: '',
+				asurakuFlag: 0,
+				asurakuClosingTime: '',
+				asurakuArea: '',
+				affiliateRate: 4,
+				startTime: '',
+				endTime: '',
+				reviewCount: 0,
+				reviewAverage: 0,
+				pointRate: 1,
+				pointRateStartTime: '',
+				pointRateEndTime: '',
+				giftFlag: 0,
+				shopName: 'Sauconyサッカニー公式楽天市場店',
+				shopCode: 'saucony',
+				genreId: '509058',
+				tagIds: [Array],
+			},
+		},
+	];
+}
