@@ -2,9 +2,9 @@ import 'dotenv/config';
 export const getProductsByKeyword = async (
 	keyword,
 	count,
-	sort,
+	sortMode,
 ) => {
-	const sortMode = sort;
+
 	const translatedKeyword = keyword;
 	const itemSearchEndpoint = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&keyword=${translatedKeyword}&hits=${count}&availability=1&applicationId=${process.env.RAKUTEN_APP_ID}&sort=${sortMode}`;
 	try {
@@ -18,55 +18,9 @@ export const getProductsByKeyword = async (
 		// const resJson = await res.json();
 		// const items = resJson.Items;
 		const items = mockAPICall();
-		const item = items[0].Item;
-		const {
-			itemName,
-			itemPrice,
-			itemCaption,
-			itemUrl,
-			smallImageUrls,
-			mediumImageUrls,
-			reviewCount,
-			reviewAverage,
-			shopName,
-			shopCode,
-			genreId,
-			tagIds,
-		} = item;
+		const normalizedItem = normalizeItems(items)
+		return normalizedItem;
 
-		const mappedItems = items.map(
-			({
-				Item: {
-					itemName,
-					itemPrice,
-					itemCaption,
-					itemUrl,
-					smallImageUrls,
-					mediumImageUrls,
-					reviewCount,
-					reviewAverage,
-					shopName,
-					shopCode,
-					genreId,
-					tagIds,
-				},
-			}) => ({
-				itemName,
-				itemPrice,
-				itemCaption,
-				itemUrl,
-				smallImageUrls,
-				mediumImageUrls,
-				reviewCount,
-				reviewAverage,
-				shopName,
-				shopCode,
-				genreId,
-				tagIds,
-			}),
-		);
-
-		return mappedItems;
 	} catch (err) {
 		console.log(err);
 	}
@@ -75,9 +29,8 @@ export const getProductsByKeyword = async (
 export const getProductsByGenresId = async (
 	genreId,
 	count,
-	sort
+	sortMode,
 ) => {
-	const sortMode = sort
 	const itemSearchEndpoint = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&genreId=${genreId}&availability=1&hits=${count}&sort=${sortMode}&applicationId=${process.env.RAKUTEN_APP_ID}`;
 
 	try {
@@ -90,9 +43,48 @@ export const getProductsByGenresId = async (
 		});
 		const resJson = await res.json();
 		const items = resJson.Items;
-		console.log(items)
+		const normalizedItem = normalizeItems(items)
+		console.log(normalizedItem)
+		return normalizedItem;
 	} catch (err) {}
 };
+
+getProductsByGenresId(568476, 1, 'standard')
+
+
+function normalizeItems(items) {
+	return items.map(
+		({
+			Item: {
+				itemName,
+				itemPrice,
+				itemCaption,
+				itemUrl,
+				smallImageUrls,
+				mediumImageUrls,
+				reviewCount,
+				reviewAverage,
+				shopName,
+				shopCode,
+				genreId,
+				tagIds,
+			},
+		}) => ({
+			itemName,
+			itemPrice,
+			itemCaption,
+			itemUrl,
+			smallImageUrls,
+			mediumImageUrls,
+			reviewCount,
+			reviewAverage,
+			shopName,
+			shopCode,
+			genreId,
+			tagIds,
+		}),
+	);
+}
 
 function mockAPICall() {
 	return [
