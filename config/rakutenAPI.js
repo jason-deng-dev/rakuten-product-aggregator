@@ -1,6 +1,8 @@
 import 'dotenv/config';
-
-export const getProductsByKeyword = async (keyword, count) => {
+export const getProductsByKeyword = async (
+	keyword,
+	count,
+) => {
 	const translatedKeyword = keyword;
 	const itemCount = count;
 	const itemSearchEndpoint = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&keyword=${translatedKeyword}&hits=${itemCount}&availability=1&applicationId=${process.env.RAKUTEN_APP_ID}`;
@@ -63,7 +65,7 @@ export const getProductsByKeyword = async (keyword, count) => {
 			}),
 		);
 
-        return mappedItems
+		return mappedItems;
 	} catch (err) {
 		console.log(err);
 	}

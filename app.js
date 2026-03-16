@@ -18,10 +18,6 @@ app.use(express.urlencoded({ extended: true }));
 import indexRouter from './routes/indexRouter.js';
 app.use('/', indexRouter)
 
-import { getProductsByKeyword } from './config/rakutenAPI.js';
-
-getProductsByKeyword('a')
-
 app.listen(process.env.PORT, () => {
     console.log(`Server running on port ${process.env.PORT}`);
 });
