@@ -1,8 +1,8 @@
 import 'dotenv/config';
 
-export const getProductsByKeyword = async (keyword) => {
+export const getProductsByKeyword = async (keyword, itemCount) => {
 	const translatedKeyword = 'running';
-	const itemCount = 1;
+	const itemCount = itemCount;
 	const itemSearchEndpoint = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&keyword=${translatedKeyword}&hits=${itemCount}&availability=1&applicationId=${process.env.RAKUTEN_APP_ID}`;
 	try {
 		// const res = await fetch(itemSearchEndpoint, {
@@ -14,11 +14,8 @@ export const getProductsByKeyword = async (keyword) => {
 		// });
 		// const resJson = await res.json();
 		// const items = resJson.Items;
-
-		// const item = items[0].Item;
-
-		const mockItems = mockAPICall();
-		const item = mockItems[0].Item;
+		const items = mockAPICall();
+		const item = items[0].Item;
 		const {
 			itemName,
 			itemPrice,
@@ -34,7 +31,39 @@ export const getProductsByKeyword = async (keyword) => {
 			tagIds,
 		} = item;
 
-		console.log(item.mediumImageUrls);
+		const mappedItems = items.map(
+			({
+				Item: {
+					itemName,
+					itemPrice,
+					itemCaption,
+					itemUrl,
+					smallImageUrls,
+					mediumImageUrls,
+					reviewCount,
+					reviewAverage,
+					shopName,
+					shopCode,
+					genreId,
+					tagIds,
+				},
+			}) => ({
+				itemName,
+				itemPrice,
+				itemCaption,
+				itemUrl,
+				smallImageUrls,
+				mediumImageUrls,
+				reviewCount,
+				reviewAverage,
+				shopName,
+				shopCode,
+				genreId,
+				tagIds,
+			}),
+		);
+
+        return mappedItems
 	} catch (err) {
 		console.log(err);
 	}
