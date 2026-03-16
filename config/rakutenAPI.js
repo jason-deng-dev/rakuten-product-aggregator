@@ -2,10 +2,11 @@ import 'dotenv/config';
 export const getProductsByKeyword = async (
 	keyword,
 	count,
+	sort,
 ) => {
+	const sortMode = sort;
 	const translatedKeyword = keyword;
-	const itemCount = count;
-	const itemSearchEndpoint = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&keyword=${translatedKeyword}&hits=${itemCount}&availability=1&applicationId=${process.env.RAKUTEN_APP_ID}`;
+	const itemSearchEndpoint = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&keyword=${translatedKeyword}&hits=${count}&availability=1&applicationId=${process.env.RAKUTEN_APP_ID}&sort=${sortMode}`;
 	try {
 		// const res = await fetch(itemSearchEndpoint, {
 		// 	headers: {
@@ -71,9 +72,26 @@ export const getProductsByKeyword = async (
 	}
 };
 
-export const getProductsByGenresId = async(cateogryId) => {
-	
-}
+export const getProductsByGenresId = async (
+	genreId,
+	count,
+	sort
+) => {
+	const sortMode = sort
+	const itemSearchEndpoint = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&genreId=${genreId}&availability=1&hits=${count}&sort=${sortMode}&applicationId=${process.env.RAKUTEN_APP_ID}`;
+
+	try {
+		// const res = await fetch(itemSearchEndpoint, {
+		// 	headers: {
+		// 		Referer: process.env.RAKUTEN_REFERRER,
+		// 		Origin: process.env.RAKUTEN_REFERRER,
+		// 		accessKey: process.env.RAKUTEN_ACCESS_KEY,
+		// 	},
+		// });
+		// const resJson = await res.json();
+		// const items = resJson.Items;
+	} catch (err) {}
+};
 
 function mockAPICall() {
 	return [
