@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="/style.css">
+  <% if (locals.styles) { %>
+  <link rel="stylesheet" href="/<%- styles %>">
+<% } %>
+
+</head>
+<body>
+  
+
+
+<div class="navContainer">
+     <div class="leftNav">
+        
+      </div>
+
+      <div  class="midNav">
+          
+        <% if (locals.user) {%>
+          <a href="/file/upload">Upload file</a>
+          <% } %>
+          <a href="/">Home</a>
+<% if (locals.user) {%>
+          <a href="/folder/create">Create folder</a>
+        <% } %>
+      </div>
+
+      <div  class="rightNav">
+        <% if (locals.user) {%>
+             <h3>User: <%= user.username %></h3>
+        <% } %>
+          
+            <% if (!locals.user) {%>
+
+          <a href="/auth/sign-up">Sign up</a>
+            <a href="/auth/login">Log in</a>
+        <% } %>
+
+        <% if (locals.user) {%>
+        <a href="/auth/logout">Log out</a>
+        <% } %>
+      </div>
+
+
+     
+
+    
+
+    
+
+
+
+    
+
+    </div>
+<div class="container">
