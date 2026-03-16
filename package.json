@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev" : "node --watch app.js"
+    "dev": "node --watch app.js"
   },
   "repository": {
     "type": "git",
@@ -21,6 +21,7 @@
   "homepage": "https://github.com/jason-deng-dev/rakuten-product-aggregator#readme",
   "dependencies": {
     "dotenv": "^17.3.1",
+    "ejs": "^5.0.1",
     "express": "^5.2.1"
   }
 }

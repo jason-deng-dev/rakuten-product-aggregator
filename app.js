@@ -15,9 +15,8 @@ app.set('view engine', 'ejs');
 app.use(express.urlencoded({ extended: true }));
 
 
-
+import indexRouter from './routes/indexRouter.js';
 app.use('/', indexRouter)
-
 
 
 app.listen(process.env.PORT, () => {
