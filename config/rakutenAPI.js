@@ -1,10 +1,9 @@
 import 'dotenv/config';
 
 export const getProductsByKeyword = async (keyword) => {
-	const keywordTranslated = keyword;
+	const translatedKeyword = keyword;
 	const itemCount = 1;
-
-	const itemSearchEndpoint = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&keyword=running&hits=${itemCount}&availability=1&applicationId=${process.env.RAKUTEN_APP_ID}`;
+	const itemSearchEndpoint = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&keyword=${translatedKeyword}&hits=${itemCount}&availability=1&applicationId=${process.env.RAKUTEN_APP_ID}`;
 	try {
 		// const res = await fetch(itemSearchEndpoint, {
 		// 	headers: {
@@ -15,8 +14,26 @@ export const getProductsByKeyword = async (keyword) => {
 		// });
 		// const resJson = await res.json();
 		// const items = resJson.Items;
-        const mockItems = mockAPICall();
-		console.log(mockItems);
+		const mockItems = mockAPICall();
+		const item = mockItems[0].Item;
+		const {
+			itemName,
+			itemPrice,
+			itemCaption,
+			itemUrl,
+			smallImageUrls,
+			mediumImageUrls,
+			reviewCount,
+			reviewAverage,
+			shopName,
+			shopCode,
+			genreId,
+			tagIds,
+		} = item;
+
+        console.log(smallImageUrls)
+        console.log(mediumImageUrls)
+		// console.log(mockItems);
 	} catch (err) {
 		console.log(err);
 	}
