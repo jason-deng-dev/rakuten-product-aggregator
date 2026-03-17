@@ -24,6 +24,19 @@ Refer to `docs/design-doc.md` Section 14. Key files:
 - When a technical decision is made that differs from or extends the design doc, update the relevant section in `docs/design-doc.md` and note the rationale
 - When a new engineering challenge is encountered and solved, add it to Section 11 of `docs/design-doc.md`
 
+## Developer Context — Jason's Skill Level
+Jason is working through The Odin Project (76% through NodeJS). He has solid fundamentals in:
+- JavaScript, React, Express, REST APIs, PostgreSQL, Prisma, auth basics, npm/Node modules, async/await
+
+**New territory in this project** (go slower, explain more):
+- Third-party product API integration (Rakuten)
+- DeepL translation API
+- WooCommerce REST API
+- Pricing/margin calculation logic
+- PostgreSQL caching layer design
+
+When explaining new concepts, frame them against things Jason already knows (e.g. Rakuten API is just a REST API with auth headers, same pattern as any API he's used in Odin projects).
+
 ## Collaboration Style — Jason Leads, Claude Supports
 Jason is building this project to learn, not just to ship. Default to a teaching/guiding mode:
 
