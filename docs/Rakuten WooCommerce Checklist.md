@@ -1,0 +1,27 @@
+
+- [x]  Setup
+- [x]  Fetch products using Rakuten API
+    - [x]  Get products by keyword
+    - [x]  Get products by genre
+        - [x]  Fill in missing genre IDs
+    - [ ]  Get products by ranking
+- [ ]  Build PostgreSQL cache layer
+    - [ ]  Run schema.sql
+    - [ ]  TTL logic (24h)
+- [ ]  Build pricing.js
+    - [ ]  Margin formula
+    - [ ]  Per-category config
+- [ ]  DeepL translation integration
+    - [ ]  Batch translation
+    - [ ]  Cache translations in DB
+- [ ]  WooCommerce integration
+    - [ ]  Single product push
+    - [ ]  Bulk product push
+    - [ ]  Idempotency check by SKU
+- [ ]  React frontend
+    - [ ]  Product listing page
+    - [ ]  Filter + search panel
+    - [ ]  Product detail view
+    - [ ]  Bulk import UI
+- [ ]  Auth
+- [ ]  Deploy
