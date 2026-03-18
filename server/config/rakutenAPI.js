@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import { sportsApparelGenres } from './genres.js';
+
 export const getProductsByKeyword = async (
 	keyword,
 	count,
@@ -8,16 +10,16 @@ export const getProductsByKeyword = async (
 	const translatedKeyword = keyword;
 	const itemSearchEndpoint = `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?format=json&keyword=${translatedKeyword}&hits=${count}&availability=1&applicationId=${process.env.RAKUTEN_APP_ID}&sort=${sortMode}`;
 	try {
-		// const res = await fetch(itemSearchEndpoint, {
-		// 	headers: {
-		// 		Referer: process.env.RAKUTEN_REFERRER,
-		// 		Origin: process.env.RAKUTEN_REFERRER,
-		// 		accessKey: process.env.RAKUTEN_ACCESS_KEY,
-		// 	},
-		// });
-		// const resJson = await res.json();
-		// const items = resJson.Items;
-		const items = mockAPICall();
+		const res = await fetch(itemSearchEndpoint, {
+			headers: {
+				Referer: process.env.RAKUTEN_REFERRER,
+				Origin: process.env.RAKUTEN_REFERRER,
+				accessKey: process.env.RAKUTEN_ACCESS_KEY,
+			},
+		});
+		const resJson = await res.json();
+		const items = resJson.Items;
+		// const items = mockAPICall();
 		const normalizedItem = normalizeItems(items)
 		return normalizedItem;
 
@@ -219,3 +221,15 @@ function mockAPICall() {
 		},
 	];
 }
+
+
+// ===== 演示用代码 =====
+
+// 从 genres.js 获取运动太阳镜的乐天类别ID
+const sunglassId = sportsApparelGenres['Sports Sunglasses']
+
+// 演示1：按关键词搜索商品（目前使用模拟数据，真实API已就绪）
+console.log(await getProductsByKeyword('running shoes', 1, 'standard'))
+
+// 演示2：按类别ID从乐天API实时抓取商品数据
+console.log(await getProductsByGenresId(sunglassId, 1, 'standard'))

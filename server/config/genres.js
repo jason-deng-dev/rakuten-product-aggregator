@@ -78,4 +78,4 @@ const topLevelGenres = {
     'Sportswear': [502027, 402463, 565743, 208118, 551942],
 };
 
-export {topLevelGenres}
+export {topLevelGenres, sportsApparelGenres}
