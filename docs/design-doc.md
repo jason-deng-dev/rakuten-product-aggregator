@@ -32,20 +32,18 @@ Product ingestion needs to be:
 
 ### 1.3 Goals
 
-- Build a customer-facing React storefront for browsing and purchasing Japanese running products
-- Two entry points: browse by genre (stored products) or keyword search (DB-first, live Rakuten fill-up to 10)
-- Translate product names and descriptions via DeepL API (JA → ZH-HANS)
+- Automate product ingestion from Rakuten Ichiba into WooCommerce — no manual copy-paste
+- Translate product names and descriptions via TranslatePress + DeepL (JA → ZH-HANS) on first customer view, cached permanently
 - Calculate auto-pricing using a margin formula (Rakuten price + shipping estimate + margin %)
-- Cart with preset shipping costs per genre, shown clearly at checkout with adjustment caveat
-- Checkout collects customer email and phone number; support contact via WeChat
-- Push purchased products to WooCommerce at checkout for order and payment processing via Stripe
-- Cache Rakuten API results and translations in PostgreSQL permanently (store all scraped products)
-- Deploy as a standalone app, independently of WordPress
+- Pre-load ~500 products per category at launch; weekly cron auto-syncs new products to keep catalog fresh
+- Expose a "Request a product" flow on the WooCommerce storefront — if a customer can't find a product, they submit a request, the backend fetches it from Rakuten, translates, prices, and pushes to WooCommerce while they wait (~1-2 min), with an on-page progress indicator
+- WooCommerce handles all customer-facing browsing, cart, checkout, and payments — no custom storefront
+- Cache Rakuten API results in PostgreSQL permanently for rate limit protection and fast repeat lookups
 
 ### 1.4 Non-Goals
 
+- Custom React storefront — WooCommerce is the storefront
 - Real-time price sync after initial WooCommerce import (v1 is import-only)
-- Automated scheduled imports without human review (imports are user-triggered)
 - Sourcing products from marketplaces other than Rakuten in v1
 
 ---
@@ -54,20 +52,20 @@ Product ingestion needs to be:
 
 |Component|Role|
 |---|---|
-|**React SPA**|Customer-facing storefront — product browsing, search, cart, checkout|
-|**Express API**|Backend orchestration — Rakuten fetch, cache, translate, price, cart, WooCommerce push|
-|**PostgreSQL**|Persistent product cache + translation cache + cart state|
-|**WooCommerce**|Order processing and payment only — not the storefront|
+|**WooCommerce**|Full customer-facing storefront — product browsing, search, cart, checkout, payments|
+|**Express API**|Backend pipeline — Rakuten fetch, normalize, translate, price, WooCommerce push, product request handler|
+|**PostgreSQL**|Persistent product cache — rate limit protection and fast repeat lookups|
+|**TranslatePress + DeepL**|JA → ZH-HANS translation on first customer page view, cached in WordPress DB permanently|
 |**Stripe**|Payment processor (already integrated via WooCommerce)|
 
-### Why a custom React frontend instead of WooCommerce as the storefront
+### Why WooCommerce as the storefront (not a custom React SPA)
 
-The original plan was to push products into WooCommerce and let customers browse there. This was changed for the following reasons:
+A custom React SPA was considered and rejected for the following reasons:
 
-1. **WooCommerce can't display products that don't exist in its database yet.** Our search fill-up logic fetches live from Rakuten — those results aren't in WooCommerce until after a push, which takes 30–60 seconds. Customers can't wait for that.
-2. **React shows results in ~1 second.** Products from our PostgreSQL cache or a live Rakuten fetch are returned by our Express API instantly and rendered in React — no WooCommerce push required to display them.
-3. **WooCommerce's frontend is not customizable enough.** Our bilingual JA/ZH use case, live search, and genre-based browsing don't fit WooCommerce's standard product listing templates without heavy plugin complexity.
-4. **We only push to WooCommerce at checkout.** The customer finds the product in React, adds to cart in React, and only at purchase does our backend create the WooCommerce product + order programmatically. This keeps WooCommerce as a payment processor and order record system — what it's actually good at.
+1. **Zero support after handoff.** This platform will be operated by a non-technical operator after the original developer leaves. WooCommerce has 24/7 support, a massive plugin ecosystem, and any WordPress developer can maintain it. A custom React SPA has none of that — if it breaks, it stays broken.
+2. **Security.** WooCommerce is battle-tested against fraud, injection attacks, and payment security edge cases. A custom checkout and cart built from scratch requires significant additional work to reach the same standard, and leaves the operator exposed to risks they have no way to diagnose or fix.
+3. **Complexity without proportionate benefit.** A large pre-loaded catalog (500 products per category) + weekly auto-sync covers the vast majority of customer demand. The edge case of a missing product is handled by the "Request a product" flow — no live search infrastructure required.
+4. **TranslatePress handles translation on the storefront.** Since the storefront is WordPress, TranslatePress + DeepL translates product pages on first customer view and caches them permanently in the WordPress DB — no custom translation pipeline in the frontend needed.
 
 ---
 
@@ -509,9 +507,10 @@ If DeepL API is unavailable or quota exceeded:
 |Translation|DeepL JA → ZH-HANS, batch at cache time|Google Translate, manual, lazy on user request|DeepL produces higher quality output for Japanese technical/product text; translating at cache time (not on user request) eliminates first-user latency; entire ~500 product catalogue fits within DeepL free tier (~250k chars)|
 |WooCommerce integration|WooCommerce REST API|Direct DB insert, WP CLI|Official path; hooks fire correctly; no SSH dependency; revocable auth|
 |Pricing|Formula-based (configurable per category)|Manual per-product, flat markup|Configurable margins per category reflects real shipping cost differences; formula is auditable and adjustable|
-|Frontend|React SPA (customer-facing storefront)|WooCommerce storefront|WooCommerce can't display products until they're pushed (30-60s delay); React shows DB + live Rakuten results in ~1s; WooCommerce frontend not customizable for bilingual JA/ZH use case; see Section 2 for full rationale|
-|WooCommerce role|Order processing + payment only|Full storefront|Demoted to backend payment processor — products are pushed at checkout time only, not on browse|
-|Cart persistence|PostgreSQL|Browser localStorage|Survives page refresh; enables server-side cart validation before checkout|
+|Frontend|WooCommerce storefront + TranslatePress|Custom React SPA|WooCommerce has 24/7 support, built-in security, and is maintainable by any WordPress developer after handoff; a custom React SPA has zero support and introduces security surface that takes significant dev time to harden; see Section 2 for full rationale|
+|WooCommerce role|Full storefront — browsing, cart, checkout, payments|Backend payment processor only|WooCommerce handles everything; products are pre-pushed at pipeline time, not at checkout|
+|Cart persistence|WooCommerce native|PostgreSQL custom implementation|Handled for free by WooCommerce — no custom cart code needed|
+|Translation (storefront)|TranslatePress + DeepL on first customer view|Custom deepl.js in Express pipeline|TranslatePress is a maintained WordPress plugin; translates and caches in WordPress DB; no custom frontend translation code; operator can manage translations without touching code|
 |Shipping at checkout|Preset per genre with adjustment caveat|Calculated at push time|Rakuten provides no weight data; category-based estimate is shown with clear caveat that actual shipping may differ|
 |Customer contact|WeChat (email/phone collected at checkout for order confirmation)|Email only|Chinese customers primarily use WeChat; email collected for WooCommerce order confirmation only|
 |Data source|Rakuten Ichiba APIs (Search + Ranking + Genre)|Manual scraping, other marketplaces|Official Rakuten API — reliable, documented, rate-limited in a known way; covers search intent + popularity signal|
@@ -519,58 +518,43 @@ If DeepL API is unavailable or quota exceeded:
 
 ---
 
-## 9. React SPA Frontend
+## 9. Product Request Flow
 
 ### 9.1 Overview
 
-A customer-facing React storefront consuming the Express API. Independently hosted, does not depend on WordPress. Customers browse and add to cart here — WooCommerce is only involved at checkout for payment processing.
+When a customer searches the WooCommerce store and can't find a product, a prominent "Didn't find what you're looking for? Request it here" button is shown. The customer submits a product name or keyword, the backend fetches it from Rakuten, translates, prices, and pushes it to WooCommerce — all while the customer waits on-page with a progress indicator.
 
-### 9.2 Feature Spec
+### 9.2 Flow
 
-**Product listing page (main view):**
+```
+Customer submits product request (keyword)
+    ↓  POST /api/request-product
+Express API:
+  1. Search Rakuten by keyword
+  2. Normalize top result
+  3. Batch translate via DeepL (name + description)
+  4. Calculate price via pricing formula
+  5. Push to WooCommerce via REST API (with image sideloading)
+    ↓  ~1-2 minutes total (image sideloading is the bottleneck)
+Return WooCommerce product URL to frontend
+    ↓
+On-page progress indicator updates to "Ready!" with link to product
+Customer clicks through to WooCommerce product page and adds to cart
+```
 
-- Two entry points:
-  - **Browse by genre** — genre selector loads stored products from PostgreSQL instantly
-  - **Search bar** — keyword search hits DB first; if <10 results, live scrapes Rakuten to fill up to 10, stores results permanently
-- Card grid: translated product name, image, calculated sale price, category badge
-- Click card → product detail view
+### 9.3 On-Page Progress Indicator
 
-**Product detail view:**
+- Shown immediately after form submission — customer stays on the page
+- Steps surfaced as the pipeline runs: Searching Rakuten → Translating → Calculating price → Adding to store → Ready!
+- Progress streamed from backend via SSE (`GET /api/request-product/status/:requestId`)
+- On completion: "Your product is ready — [View Product]" link to WooCommerce product page
+- On failure: "We couldn't find that product on Rakuten. Try a different search term."
 
-- Translated name, description, images (carousel)
-- Calculated sale price with shipping caveat: "Estimated shipping ¥XXX — actual shipping may vary based on item weight and will be confirmed before dispatch"
-- Add to cart button
+### 9.4 Implementation Notes
 
-**Cart:**
-
-- Cart state persisted in PostgreSQL (survives page refresh)
-- Line items: product name, price, estimated shipping per item
-- Shipping caveat shown clearly before checkout
-- Total price displayed
-
-**Checkout:**
-
-- Required fields: email address, phone number
-- Note: "We will contact you via WeChat for delivery updates — please add [WeChat handle]"
-- On submit: backend pushes products to WooCommerce, creates order, redirects to Stripe
-- WooCommerce order confirmation email sent automatically after payment
-
-**UI state handling:**
-
-- Loading skeleton on fetch
-- "Translation pending" badge on untranslated products
-- Error state if API or Rakuten is unreachable
-
-### 9.3 Stack
-
-|Layer|Choice|
-|---|---|
-|Frontend|React (Vite)|
-|Styling|Tailwind CSS|
-|API client|axios|
-|Backend|Express + Node.js|
-|Database|PostgreSQL|
-|Deployment|AWS Lightsail|
+- This is a WordPress shortcode or widget added to the WooCommerce search results page — no custom storefront needed
+- The progress indicator is a small embedded JS snippet that connects to the SSE stream
+- `POST /api/request-product` is the only new Express endpoint needed for this flow
 
 ---
 
@@ -588,8 +572,9 @@ A customer-facing React storefront consuming the Express API. Independently host
 |pricing.js|❌ Not started|Formula defined, not implemented|
 |woocommerce.js|❌ Not started|WooCommerce REST API integration|
 |Express API|🔧 Partial|MVC structure set up, endpoints not fully implemented|
-|React SPA|❌ Not started|—|
-|Authentication|❌ Not started|—|
+|Product request flow|❌ Not started|SSE-based progress indicator + Express endpoint|
+|TranslatePress config|❌ Not started|WordPress plugin setup + DeepL API key|
+|Weekly auto-sync cron|❌ Not started|Scheduled Rakuten fetch + WooCommerce push|
 |Deployment|❌ Not started|—|
 
 ### 10.2 Phase 1 — Data Pipeline
@@ -614,15 +599,18 @@ A customer-facing React storefront consuming the Express API. Independently host
 
 **Exit criteria:** A product fetched from Rakuten can be pushed to WooCommerce with translated name/description and auto-calculated price in under 10 seconds.
 
-### 10.4 Phase 3 — React Frontend + Deployment
+### 10.4 Phase 3 — Storefront Integration + Deployment
 
-1. Build React SPA: product listing, filter panel, detail view, bulk import UI
-2. Wire all API endpoints into frontend
-3. Add authentication (admin-only access — this is an internal tool)
-4. Deploy Express API + React frontend to AWS Lightsail (same instance as other pipelines)
-5. Smoke test full flow: search → browse → translate → price preview → import → verify in WooCommerce
+1. Install and configure TranslatePress + DeepL on running.moximoxi.net
+2. Run initial bulk push of ~500 products per category to WooCommerce
+3. Verify TranslatePress translates product pages correctly on first view and caches
+4. Build product request flow: `POST /api/request-product` endpoint + SSE progress stream
+5. Embed progress indicator widget on WooCommerce search results page via shortcode
+6. Set up weekly auto-sync cron job: Rakuten fetch → normalize → translate → push new products
+7. Deploy Express API to AWS Lightsail (same instance as other pipelines)
+8. Smoke test full flow: browse WooCommerce → translation correct → request missing product → product appears in ~2 min
 
-**Exit criteria:** Portfolio frontend is live at a public URL. Full import flow works end-to-end. Deployed independently of WordPress.
+**Exit criteria:** WooCommerce store is live with ~500 products per category, all translated to Chinese. Product request flow works end-to-end. Weekly auto-sync running.
 
 ---
 
