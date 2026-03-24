@@ -228,7 +228,7 @@ function mockAPICall() {
 // 从 genres.js 获取运动太阳镜的乐天类别ID
 const sunglassId = sportsApparelGenres['Sports Sunglasses']
 
-// 演示1：按关键词搜索商品（目前使用模拟数据，真实API已就绪）
+// 演示1：按关键词搜索商品（实时调用乐天API）
 console.log(await getProductsByKeyword('running shoes', 1, 'standard'))
 
 // 演示2：按类别ID从乐天API实时抓取商品数据

@@ -32,33 +32,42 @@ Product ingestion needs to be:
 
 ### 1.3 Goals
 
-- Build a full-stack web app that fetches running products from Rakuten via API
-- Display products with search, filtering by genre/category, and popularity ranking
-- Translate product names and descriptions via DeepL API
+- Build a customer-facing React storefront for browsing and purchasing Japanese running products
+- Two entry points: browse by genre (stored products) or keyword search (DB-first, live Rakuten fill-up to 10)
+- Translate product names and descriptions via DeepL API (JA → ZH-HANS)
 - Calculate auto-pricing using a margin formula (Rakuten price + shipping estimate + margin %)
-- Push selected products to WooCommerce via REST API (one-click and bulk import)
-- Cache Rakuten API results in PostgreSQL with TTL-based freshness logic
-- Deploy as a standalone portfolio piece, independently of WordPress
+- Cart with preset shipping costs per genre, shown clearly at checkout with adjustment caveat
+- Checkout collects customer email and phone number; support contact via WeChat
+- Push purchased products to WooCommerce at checkout for order and payment processing via Stripe
+- Cache Rakuten API results and translations in PostgreSQL permanently (store all scraped products)
+- Deploy as a standalone app, independently of WordPress
 
 ### 1.4 Non-Goals
 
 - Real-time price sync after initial WooCommerce import (v1 is import-only)
-- Customer-facing product browsing (this is an internal/admin tool + portfolio piece)
 - Automated scheduled imports without human review (imports are user-triggered)
 - Sourcing products from marketplaces other than Rakuten in v1
 
 ---
 
-## 2. Dual-Output Architecture
+## 2. Architecture Role of Each Component
 
-Like the Marathon Hub, this project serves two consumers:
+|Component|Role|
+|---|---|
+|**React SPA**|Customer-facing storefront — product browsing, search, cart, checkout|
+|**Express API**|Backend orchestration — Rakuten fetch, cache, translate, price, cart, WooCommerce push|
+|**PostgreSQL**|Persistent product cache + translation cache + cart state|
+|**WooCommerce**|Order processing and payment only — not the storefront|
+|**Stripe**|Payment processor (already integrated via WooCommerce)|
 
-|Output|Purpose|Audience|
-|---|---|---|
-|**WooCommerce integration**|Production product ingestion for running.moximoxi.net/shop/|Store admin (Jason)|
-|**Portfolio frontend**|Standalone deployable app demonstrating full-stack + API integration|Hiring managers, portfolio reviewers|
+### Why a custom React frontend instead of WooCommerce as the storefront
 
-Both outputs use the same Express backend and PostgreSQL cache. The WooCommerce push is an action triggered from the portfolio UI — the two outputs are the same app, not separate systems.
+The original plan was to push products into WooCommerce and let customers browse there. This was changed for the following reasons:
+
+1. **WooCommerce can't display products that don't exist in its database yet.** Our search fill-up logic fetches live from Rakuten — those results aren't in WooCommerce until after a push, which takes 30–60 seconds. Customers can't wait for that.
+2. **React shows results in ~1 second.** Products from our PostgreSQL cache or a live Rakuten fetch are returned by our Express API instantly and rendered in React — no WooCommerce push required to display them.
+3. **WooCommerce's frontend is not customizable enough.** Our bilingual JA/ZH use case, live search, and genre-based browsing don't fit WooCommerce's standard product listing templates without heavy plugin complexity.
+4. **We only push to WooCommerce at checkout.** The customer finds the product in React, adds to cart in React, and only at purchase does our backend create the WooCommerce product + order programmatically. This keeps WooCommerce as a payment processor and order record system — what it's actually good at.
 
 ---
 
@@ -142,33 +151,63 @@ FETCH → CACHE → TRANSLATE → PRICE → DISPLAY → IMPORT
 
 ### 3.3 Data Flow
 
+#### Browse by genre
 ```
-React SPA (user searches / browses)
-    ↓  (GET /api/products)
-Express API
-    ↓  (cache check)
-PostgreSQL cache
-    ├── FRESH (< 24h): return cached results
-    └── STALE / MISS:
-            ↓  (API call)
-        Rakuten APIs (Search / Ranking / Genre)
-            ↓  (normalize)
-        normalizeItems.js
-            ↓  (cache + translate)
-        PostgreSQL (store with fetched_at)
-        deepl.js (JA → ZH-HANS, cache translation)
+React SPA (user selects genre)
+    ↓  (GET /api/products?genre_id=XXX)
+Express API → PostgreSQL (return stored products for that genre)
+    ↓
+React SPA (displays product cards instantly)
+```
+
+#### Search (keyword)
+```
+React SPA (user types keyword)
+    ↓  (GET /api/products/search?keyword=XXX)
+Express API → PostgreSQL (check how many results we have)
+    ├── 10+ results: return from DB immediately
+    └── <10 results:
+            ↓  live fetch from Rakuten API
+        normalizeItems.js → deepl.js → pricing.js
+            ↓  store permanently in PostgreSQL
+        return combined DB + new results (up to 10)
             ↓
-        pricing.js (apply margin formula)
-            ↓
-        Express API response
-            ↓
-React SPA (displays products with translated names, calculated prices)
-    ↓  (user selects + clicks Import)
-Express API
-    ↓  (POST /api/woocommerce/push)
-woocommerce.js
-    ↓  (WooCommerce REST API)
-running.moximoxi.net/shop/ (product live in store)
+React SPA (displays results in ~1s)
+```
+
+#### Add to cart (background WooCommerce push)
+```
+User clicks "Add to Cart" on React app
+    ↓  (POST /api/cart)
+Express API:
+    1. Save item to cart in PostgreSQL
+    2. Immediately trigger background push to WooCommerce
+       (create product if not exists — fire and forget, don't await)
+    ↓
+React SPA responds instantly — user continues browsing
+    ↓  (background, ~30-60s)
+WooCommerce product created, wc_product_id stored in PostgreSQL
+```
+
+**Rationale:** Pushing a product to WooCommerce takes 30–60 seconds due to image sideloading. If we wait until checkout to push, the user is blocked staring at a loading screen. By triggering the push the moment a user adds to cart, we use the natural browse time (typically 2–5 minutes) to complete the push in the background. By the time the user reaches checkout, the products are already in WooCommerce and the order can be created immediately.
+
+#### Checkout
+```
+User confirms cart in React, enters email + phone
+    ↓  (POST /api/checkout)
+Express API:
+    1. Verify all cart items have wc_product_id (push complete)
+       └── if any still pending: wait for push to finish
+    2. POST /wp-json/wc/v3/orders — create WooCommerce order
+       with customer details, line items, shipping
+    3. WooCommerce returns payment_url
+    ↓
+React redirects user to payment_url (WordPress/Stripe)
+    ↓
+User completes payment on WordPress
+    ↓
+WooCommerce order confirmed — operator sees in WooCommerce backend
+Email confirmation sent to customer automatically
 ```
 
 ---
@@ -251,42 +290,47 @@ CREATE TABLE import_log (
 sale_price = ceil((rakuten_price + shipping_estimate) / (1 - margin_pct))
 ```
 
-**Default values (configurable per category):**
+**Currency:** All sale prices are stored and displayed in CNY (Chinese Yuan). Rakuten prices are in JPY — conversion applies at calculation time using a configurable exchange rate.
 
-|Category|Shipping Estimate|Target Margin|
+**Shipping estimate covers two legs:** Japan domestic (Rakuten → company) + international (Japan → China). Rakuten provides no weight data, so estimates are flat per category.
+
+**Default values (placeholder — to be updated via Automation Pipeline Monitoring Dashboard):**
+
+|Category|Shipping Estimate (CNY)|Target Margin|
 |---|---|---|
-|Nutrition / Supplements|¥800|20%|
-|Running Gear|¥1,200|22%|
-|Recovery & Care|¥800|20%|
-|Sportswear|¥1,500|25%|
-|Training Equipment|¥1,500|22%|
+|Nutrition / Supplements|¥65|20%|
+|Running Gear|¥120|22%|
+|Recovery & Care|¥65|20%|
+|Sportswear|¥150|25%|
+|Training Equipment|¥150|22%|
+
+These values are stored in `pricing_config.js` and will be editable directly from the Automation Pipeline Monitoring Dashboard without touching code. Actual values to be confirmed by operator before launch.
 
 **Example:**
 
 ```
-Rakuten price: ¥3,240
-Shipping estimate: ¥800
+Rakuten price: ¥3,240 JPY → ~¥160 CNY (at ~0.049 rate)
+Shipping estimate: ¥65 CNY
 Margin: 20%
 
-sale_price = ceil((3240 + 800) / (1 - 0.20))
-           = ceil(4040 / 0.80)
-           = ceil(5050)
-           = ¥5,050
+sale_price = ceil((160 + 65) / (1 - 0.20))
+           = ceil(225 / 0.80)
+           = ¥282 CNY
 ```
 
-The pricing formula and per-category shipping/margin config are stored in a `pricing_config.js` file — adjustable without touching business logic.
+The pricing formula and per-category shipping/margin config are stored in `pricing_config.js` — adjustable without touching business logic, and updatable via dashboard.
 
 ### 4.4 Express API Endpoints
 
 |Method|Endpoint|Description|
 |---|---|---|
-|`GET`|`/api/products`|Product list, supports query params|
+|`GET`|`/api/products`|Products by genre from PostgreSQL|
+|`GET`|`/api/products/search`|Keyword search — DB first, live Rakuten fill to 10|
 |`GET`|`/api/products/:itemCode`|Single product detail|
-|`GET`|`/api/products/ranking`|Top products by Rakuten ranking|
 |`GET`|`/api/genres`|Genre tree for filter UI|
-|`POST`|`/api/products/refresh`|Force cache invalidation + re-fetch|
-|`POST`|`/api/woocommerce/push`|Push single product to WooCommerce|
-|`POST`|`/api/woocommerce/push-bulk`|Push array of products to WooCommerce|
+|`POST`|`/api/cart`|Save cart state to PostgreSQL|
+|`GET`|`/api/cart`|Retrieve cart state|
+|`POST`|`/api/checkout`|Push products to WooCommerce + create order + return Stripe URL|
 |`GET`|`/api/woocommerce/status/:itemCode`|Check if product already in WooCommerce|
 
 **Query params for `/api/products`:**
@@ -455,7 +499,11 @@ If DeepL API is unavailable or quota exceeded:
 |Translation|DeepL JA → ZH-HANS|Google Translate, manual|DeepL produces higher quality output for Japanese technical/product text; ZH-HANS matches platform audience|
 |WooCommerce integration|WooCommerce REST API|Direct DB insert, WP CLI|Official path; hooks fire correctly; no SSH dependency; revocable auth|
 |Pricing|Formula-based (configurable per category)|Manual per-product, flat markup|Configurable margins per category reflects real shipping cost differences; formula is auditable and adjustable|
-|Frontend|React SPA|EJS (existing MVC)|React demonstrates modern frontend skills; consistent with Marathon Hub portfolio approach; filtering-heavy UI suits SPA|
+|Frontend|React SPA (customer-facing storefront)|WooCommerce storefront|WooCommerce can't display products until they're pushed (30-60s delay); React shows DB + live Rakuten results in ~1s; WooCommerce frontend not customizable for bilingual JA/ZH use case; see Section 2 for full rationale|
+|WooCommerce role|Order processing + payment only|Full storefront|Demoted to backend payment processor — products are pushed at checkout time only, not on browse|
+|Cart persistence|PostgreSQL|Browser localStorage|Survives page refresh; enables server-side cart validation before checkout|
+|Shipping at checkout|Preset per genre with adjustment caveat|Calculated at push time|Rakuten provides no weight data; category-based estimate is shown with clear caveat that actual shipping may differ|
+|Customer contact|WeChat (email/phone collected at checkout for order confirmation)|Email only|Chinese customers primarily use WeChat; email collected for WooCommerce order confirmation only|
 |Data source|Rakuten Ichiba APIs (Search + Ranking + Genre)|Manual scraping, other marketplaces|Official Rakuten API — reliable, documented, rate-limited in a known way; covers search intent + popularity signal|
 |Language|Node.js / JavaScript|Python|Consistent with rest of stack; no context switching|
 
@@ -465,45 +513,43 @@ If DeepL API is unavailable or quota exceeded:
 
 ### 9.1 Overview
 
-A standalone React application consuming the Express API. Same deployment pattern as the Marathon Hub frontend — independently hosted, does not depend on WordPress being live.
+A customer-facing React storefront consuming the Express API. Independently hosted, does not depend on WordPress. Customers browse and add to cart here — WooCommerce is only involved at checkout for payment processing.
 
 ### 9.2 Feature Spec
 
 **Product listing page (main view):**
 
-- Card grid of products, default sorted by popularity (Rakuten ranking)
-- Each card: translated product name, image, calculated sale price, category badge, import status badge (imported / not imported)
+- Two entry points:
+  - **Browse by genre** — genre selector loads stored products from PostgreSQL instantly
+  - **Search bar** — keyword search hits DB first; if <10 results, live scrapes Rakuten to fill up to 10, stores results permanently
+- Card grid: translated product name, image, calculated sale price, category badge
 - Click card → product detail view
-
-**Filter + search panel:**
-
-- Filter by category: All / Running Gear / Nutrition / Recovery / Training / Sportswear
-- Filter by subcategory/genre: dynamic based on selected category
-- Sort: Popularity / Price low-high / Price high-low / Newest
-- Price range slider
-- Keyword search (triggers new Rakuten API call via Express)
-- "Not yet imported" toggle — show only products not yet in WooCommerce
 
 **Product detail view:**
 
-- Full product info: translated name, description, images (carousel), calculated price breakdown
-- Price breakdown: Rakuten cost + shipping estimate + margin % = sale price
-- Import button (single product push to WooCommerce)
-- Link to original Rakuten listing
+- Translated name, description, images (carousel)
+- Calculated sale price with shipping caveat: "Estimated shipping ¥XXX — actual shipping may vary based on item weight and will be confirmed before dispatch"
+- Add to cart button
 
-**Bulk import:**
+**Cart:**
 
-- Checkbox selection on product cards
-- "Import selected (N)" action bar appears when items are checked
-- Confirm modal showing selected products + total before pushing
-- Per-product result feedback after bulk push (success / failed / skipped)
+- Cart state persisted in PostgreSQL (survives page refresh)
+- Line items: product name, price, estimated shipping per item
+- Shipping caveat shown clearly before checkout
+- Total price displayed
+
+**Checkout:**
+
+- Required fields: email address, phone number
+- Note: "We will contact you via WeChat for delivery updates — please add [WeChat handle]"
+- On submit: backend pushes products to WooCommerce, creates order, redirects to Stripe
+- WooCommerce order confirmation email sent automatically after payment
 
 **UI state handling:**
 
 - Loading skeleton on fetch
 - "Translation pending" badge on untranslated products
-- Import status badge persists after push (sourced from `wc_product_id` in DB)
-- Error state if API or WooCommerce is unreachable
+- Error state if API or Rakuten is unreachable
 
 ### 9.3 Stack
 
@@ -631,14 +677,22 @@ A standalone React application consuming the Express API. Same deployment patter
 
 ---
 
-## 13. Open Questions
+## 13. Open Questions & Resolved Decisions
 
-- **DeepL API key:** Waiting on this to unblock translation implementation. Free tier (500k chars/month) should be sufficient for v1.
+### Resolved
+- **Currency:** CNY. Sale prices stored and displayed in Chinese Yuan. JPY → CNY conversion applied at pricing calculation time.
+- **WeChat handle:** `Moxi` — shown at checkout with instruction to add for delivery updates.
+- **Shipping config:** Placeholder values set in `pricing_config.js`. Final values to be confirmed by operator and updated via Automation Pipeline Monitoring Dashboard.
+- **WooCommerce role:** Order processing and payment only. React app is the customer-facing storefront.
+- **Checkout push timing:** WooCommerce push triggered on "Add to Cart" in background, not at checkout — eliminates 60s blocking wait at payment time.
+
+### Still Open
+- **DeepL API key:** Waiting on this to unblock translation implementation.
 - **Missing genre IDs in genres.js:** Need to call Rakuten Genre Search API to populate incomplete entries before launch.
-- **Authentication:** Admin-only access needed before deployment. Options: simple HTTP Basic Auth, JWT, or session-based. Needs decision.
+- **WooCommerce REST API credentials:** Consumer Key + Secret not yet generated on running.moximoxi.net.
 - **Image sideloading:** WooCommerce's automatic image sideloading on import needs testing — some CDN images may block hotlink requests.
-- **Ranking API coverage:** Rakuten Ranking API may not cover all genre IDs in genres.js. Need to test which genres return ranking data and which fall back to search.
-- **Currency display:** Products are priced in JPY. Does the WooCommerce store display in JPY or CNY? Affects how sale_price is stored and displayed.
+- **Categories in scope for v1:** All 5 top-level categories (Running Gear, Training, Nutrition & Supplements, Recovery & Care, Sportswear). Initial pre-load target: ~500 products total, spread roughly evenly (~100 per top-level category). Catalogue grows organically via on-demand search after that.
+- **Exchange rate source:** JPY → CNY rate — hardcoded in config or fetched from an exchange rate API? Needs decision.
 
 ---
 
