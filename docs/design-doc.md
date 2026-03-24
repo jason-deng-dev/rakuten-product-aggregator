@@ -165,15 +165,17 @@ React SPA (displays product cards instantly)
 React SPA (user types keyword)
     ↓  (GET /api/products/search?keyword=XXX)
 Express API → PostgreSQL (check how many results we have)
-    ├── 10+ results: return from DB immediately
-    └── <10 results:
+    ├── search_fill_threshold+ results: return from DB immediately
+    └── <search_fill_threshold results:
             ↓  live fetch from Rakuten API
         normalizeItems.js → deepl.js → pricing.js
             ↓  store permanently in PostgreSQL
-        return combined DB + new results (up to 10)
+        return combined DB + new results (up to search_fill_threshold)
             ↓
 React SPA (displays results in ~1s)
 ```
+
+`search_fill_threshold` defaults to 10 and is configurable in `pricing_config.js` — adjustable from the dashboard without touching code.
 
 #### Add to cart (background WooCommerce push)
 ```
@@ -466,28 +468,36 @@ Genre IDs for incomplete entries are fetched via the Rakuten Ichiba Genre Search
 - Translate `name_ja` → `name_zh` and `description_ja` → `description_zh`
 - Source language: `JA` (Japanese)
 - Target language: `ZH-HANS` (Simplified Chinese — matches platform audience)
+- Translate at cache time — when products are fetched from Rakuten and written to PostgreSQL, all new products are batch-translated immediately before the response is returned
 - Translate once, store in PostgreSQL — never re-translate the same `item_code` unless explicitly invalidated
-- Batch translation: collect all untranslated products in a request, send as array to DeepL to minimize API call count
+
+**Why translate at cache time rather than lazily on user request:**
+
+At ~500 products and ~500 chars each, the entire catalogue is ~250,000 characters — within DeepL's free tier. Translating on first user browse would mean the first visitor to a category sees a latency hit while waiting for a batch DeepL call. Translating at cache time means users always get translated products with no delay, at no meaningful extra cost.
 
 ### 7.2 Translation Cache Logic
 
 ```
-On product fetch:
-  if translated_at IS NULL → add to translation queue
-  if translated_at IS NOT NULL → use cached translation
-
-On translation queue flush:
-  POST to DeepL /v2/translate with array of texts
+On Rakuten fetch:
+  normalize products → collect all with translated_at IS NULL
+  POST batch to DeepL /v2/translate (single API call for all new products)
   Update name_zh, description_zh, translated_at in PostgreSQL
+  Return translated products
+
+On subsequent product requests:
+  translated_at IS NOT NULL → return cached translation, no DeepL call
 ```
+
+No translation queue — translations are resolved synchronously at fetch time before products are stored.
 
 ### 7.3 Fallback
 
 If DeepL API is unavailable or quota exceeded:
 
-- Return product with `name_zh = name_ja` (raw Japanese) flagged as untranslated
+- Store product with `name_zh = name_ja` (raw Japanese), `translated_at` left NULL
 - UI shows "Translation pending" badge on affected products
 - Do not block product display or import
+- Dashboard surfaces count of products with `translated_at IS NULL` as a health metric
 
 ---
 
@@ -496,7 +506,7 @@ If DeepL API is unavailable or quota exceeded:
 |Decision|Choice|Alternatives Considered|Rationale|
 |---|---|---|---|
 |Caching layer|PostgreSQL with 24h TTL|In-memory only, Redis|PostgreSQL already in stack; persistent across restarts; enables translation caching alongside product data; 24h TTL balances freshness vs rate limit protection|
-|Translation|DeepL JA → ZH-HANS|Google Translate, manual|DeepL produces higher quality output for Japanese technical/product text; ZH-HANS matches platform audience|
+|Translation|DeepL JA → ZH-HANS, batch at cache time|Google Translate, manual, lazy on user request|DeepL produces higher quality output for Japanese technical/product text; translating at cache time (not on user request) eliminates first-user latency; entire ~500 product catalogue fits within DeepL free tier (~250k chars)|
 |WooCommerce integration|WooCommerce REST API|Direct DB insert, WP CLI|Official path; hooks fire correctly; no SSH dependency; revocable auth|
 |Pricing|Formula-based (configurable per category)|Manual per-product, flat markup|Configurable margins per category reflects real shipping cost differences; formula is auditable and adjustable|
 |Frontend|React SPA (customer-facing storefront)|WooCommerce storefront|WooCommerce can't display products until they're pushed (30-60s delay); React shows DB + live Rakuten results in ~1s; WooCommerce frontend not customizable for bilingual JA/ZH use case; see Section 2 for full rationale|
@@ -560,7 +570,7 @@ A customer-facing React storefront consuming the Express API. Independently host
 |API client|axios|
 |Backend|Express + Node.js|
 |Database|PostgreSQL|
-|Deployment|Railway / Render|
+|Deployment|AWS Lightsail|
 
 ---
 
@@ -609,7 +619,7 @@ A customer-facing React storefront consuming the Express API. Independently host
 1. Build React SPA: product listing, filter panel, detail view, bulk import UI
 2. Wire all API endpoints into frontend
 3. Add authentication (admin-only access — this is an internal tool)
-4. Deploy Express API + React frontend to Railway or Render
+4. Deploy Express API + React frontend to AWS Lightsail (same instance as other pipelines)
 5. Smoke test full flow: search → browse → translate → price preview → import → verify in WooCommerce
 
 **Exit criteria:** Portfolio frontend is live at a public URL. Full import flow works end-to-end. Deployed independently of WordPress.
