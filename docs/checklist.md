@@ -1,5 +1,6 @@
 
 - [x]  Setup
+- [ ]  End-to-end delay spike — measure time from Rakuten search → WooCommerce push → product visible/purchasable on store. Validates product request flow promise (~1-2 min) before building the full pipeline.
 - [x]  Fetch products using Rakuten API
     - [x]  Get products by keyword
     - [x]  Get products by genre
@@ -11,17 +12,15 @@
 - [ ]  Build pricing.js
     - [ ]  Margin formula
     - [ ]  Per-category config
-- [ ]  DeepL translation integration
-    - [ ]  Batch translation
-    - [ ]  Cache translations in DB
 - [ ]  WooCommerce integration
     - [ ]  Single product push
     - [ ]  Bulk product push
     - [ ]  Idempotency check by SKU
-- [ ]  React frontend
-    - [ ]  Product listing page
-    - [ ]  Filter + search panel
-    - [ ]  Product detail view
-    - [ ]  Bulk import UI
-- [ ]  Auth
-- [ ]  Deploy
+- [ ]  Initial bulk push (~500 products per category) to WooCommerce
+- [ ]  Configure TranslatePress + DeepL on running.moximoxi.net
+- [ ]  Build product request flow
+    - [ ]  POST /api/request-product endpoint
+    - [ ]  SSE progress stream (GET /api/request-product/status/:requestId)
+    - [ ]  Embed progress indicator widget on WooCommerce search results page
+- [ ]  Weekly auto-sync cron (Rakuten fetch → normalize → price → push new products)
+- [ ]  Deploy to AWS Lightsail
